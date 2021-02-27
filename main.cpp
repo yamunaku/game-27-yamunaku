@@ -14,16 +14,96 @@ struct Move {
 using Hand = variant<Pass, Move>;
 
 string to_string(const Hand &hand) {
-    struct ToStringVisitor {
-        string operator()(const Pass &p) { return "pass"; }
-        string operator()(const Move &m) {
-            return "move " + to_string(m.pos) + " " + to_string(m.num);
+    if (holds_alternative<Pass>(hand)) {
+        return "pass";
+    } else {
+        const Move &m = get<Move>(hand);
+        return "move " + to_string(m.pos) + " " + to_string(m.num);
+    }
+}
+
+constexpr Position board_size = 9;
+constexpr Num init_stone_num = 9;
+
+using Color = int;
+
+struct Board {
+    bool turn;
+    vector<vector<Color>> stones;
+    const pair<Position, Position> count_tower();
+    void move(Hand hand);
+
+    Board(bool _turn) {
+        turn = _turn;
+        stones = vector<vector<Color>>(board_size);
+        stones[0] = vector<Color>(init_stone_num, 0);
+        stones[board_size - 1] = vector<Color>(init_stone_num, 1);
+    }
+};
+
+const pair<Position, Position> Board::count_tower() {
+    Position my = 0, opp = 0;
+    for (auto &v : stones) {
+        if (v.size() > 0) {
+            if (v.back() == 0)
+                my++;
+            else
+                opp++;
         }
-    };
-    return visit(ToStringVisitor{}, hand);
+    }
+    return {my, opp};
+}
+
+void Board::move(Hand hand) {
+    pair<Position, Position> tower_num = count_tower();
+    if (turn) {
+        if (holds_alternative<Pass>(hand)) {
+            for (int i = 0; i < board_size; i++) {
+                if (stones[i].size() > 0) {
+                    if (stones[i].back() == 0) {
+                        assert(i + tower_num.first >= board_size);
+                    }
+                }
+            }
+        } else {
+            const Move &m = get<Move>(hand);
+            int sz = stones[m.pos].size();
+            assert(sz > m.num);
+            assert(stones[m.pos].back() == 0);
+            assert(m.pos + tower_num.first < board_size);
+            for (int i = 0; i < m.num; i++) {
+                stones[m.pos + tower_num.first].push_back(
+                    stones[m.pos][sz - m.num + i]);
+            }
+            stones[m.pos].resize(sz - m.num);
+        }
+    } else {
+        if (holds_alternative<Pass>(hand)) {
+            for (int i = 0; i < board_size; i++) {
+                if (stones[i].size() > 0) {
+                    if (stones[i].back() == 1) {
+                        assert(i - tower_num.second < 0);
+                    }
+                }
+            }
+        } else {
+            const Move &m = get<Move>(hand);
+            int sz = stones[m.pos].size();
+            assert(sz > m.num);
+            assert(stones[m.pos].back() == 1);
+            assert(m.pos - tower_num.first >= 0);
+            for (int i = 0; i < m.num; i++) {
+                stones[m.pos - tower_num.first].push_back(
+                    stones[m.pos][sz - m.num + i]);
+            }
+            stones[m.pos].resize(sz - m.num);
+        }
+    }
+    turn = !turn;
 }
 
 struct Player {
+    Board board;
     void play();
     bool input_init();
     bool input_playing();
@@ -35,15 +115,19 @@ struct Player {
 
 void Player::play() {
     bool is_first = input_init();
+    board = Board(is_first);
     if (is_first) {
         input_wait();
         Hand my_hand;  // TODO
+        board.move(my_hand);
         output_hand(my_hand);
     }
     while (input_playing()) {
-        Hand opponent_hand = input_hand();  // TODO
+        Hand opponent_hand = input_hand();
+        board.move(opponent_hand);
         input_wait();
         Hand my_hand;  // TODO
+        board.move(my_hand);
         output_hand(my_hand);
     }
     int score = input_score();
