@@ -25,7 +25,7 @@ string to_string(const Hand &hand) {
 constexpr Position board_size = 9;
 constexpr Num init_stone_num = 9;
 
-using Color = int;
+enum class Color { Red, Blue };
 
 struct Board {
     bool turn;
@@ -35,8 +35,8 @@ struct Board {
 
     Board(bool _turn = true) : turn(_turn) {
         stones = vector<vector<Color>>(board_size);
-        stones[0] = vector<Color>(init_stone_num, 0);
-        stones[board_size - 1] = vector<Color>(init_stone_num, 1);
+        stones[0] = vector<Color>(init_stone_num, Color::Blue);
+        stones[board_size - 1] = vector<Color>(init_stone_num, Color::Red);
     }
 };
 
@@ -44,7 +44,7 @@ const pair<Position, Position> Board::count_tower() {
     Position my = 0, opp = 0;
     for (auto &v : stones) {
         if (v.size() > 0) {
-            if (v.back() == 0)
+            if (v.back() == Color::Blue)
                 my++;
             else
                 opp++;
@@ -59,7 +59,7 @@ void Board::move(Hand hand) {
         if (holds_alternative<Pass>(hand)) {
             for (int i = 0; i < board_size; i++) {
                 if (stones[i].size() > 0) {
-                    if (stones[i].back() == 0) {
+                    if (stones[i].back() == Color::Blue) {
                         assert(i + tower_num.first >= board_size);
                     }
                 }
@@ -68,7 +68,7 @@ void Board::move(Hand hand) {
             const Move &m = get<Move>(hand);
             int sz = stones[m.pos].size();
             assert(sz > m.num);
-            assert(stones[m.pos].back() == 0);
+            assert(stones[m.pos].back() == Color::Blue);
             assert(m.pos + tower_num.first < board_size);
             for (int i = 0; i < m.num; i++) {
                 stones[m.pos + tower_num.first].push_back(
@@ -80,7 +80,7 @@ void Board::move(Hand hand) {
         if (holds_alternative<Pass>(hand)) {
             for (int i = 0; i < board_size; i++) {
                 if (stones[i].size() > 0) {
-                    if (stones[i].back() == 1) {
+                    if (stones[i].back() == Color::Red) {
                         assert(i - tower_num.second < 0);
                     }
                 }
@@ -89,7 +89,7 @@ void Board::move(Hand hand) {
             const Move &m = get<Move>(hand);
             int sz = stones[m.pos].size();
             assert(sz > m.num);
-            assert(stones[m.pos].back() == 1);
+            assert(stones[m.pos].back() == Color::Red);
             assert(m.pos - tower_num.first >= 0);
             for (int i = 0; i < m.num; i++) {
                 stones[m.pos - tower_num.first].push_back(
