@@ -13,10 +13,10 @@ struct Move {
 
 using Hand = variant<Pass, Move>;
 
-string to_string(Hand hand) {
+string to_string(const Hand &hand) {
     struct ToStringVisitor {
-        string operator()(Pass p) { return "pass"; }
-        string operator()(Move m) {
+        string operator()(const Pass &p) { return "pass"; }
+        string operator()(const Move &m) {
             return "move " + to_string(m.pos) + " " + to_string(m.num);
         }
     };
@@ -30,7 +30,7 @@ struct Player {
     Hand input_hand();
     void input_wait();
     int input_score();
-    void output_hand(Hand hand);
+    void output_hand(const Hand &hand);
 };
 
 void Player::play() {
@@ -92,7 +92,7 @@ int Player::input_score() {
     return score;
 }
 
-void Player::output_hand(Hand hand) { cout << to_string(hand) << endl; }
+void Player::output_hand(const Hand &hand) { cout << to_string(hand) << endl; }
 
 int main() {
     Player p;
