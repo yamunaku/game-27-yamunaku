@@ -25,7 +25,7 @@ string to_string(const Hand &hand) {
 constexpr Position board_size = 9;
 constexpr Num init_stone_num = 9;
 
-enum class Color { Red, Blue };
+enum class Color { Blue, Red };
 
 struct Board {
     bool turn;
