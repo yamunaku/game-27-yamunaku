@@ -33,8 +33,7 @@ struct Board {
     const pair<Position, Position> count_tower();
     void move(Hand hand);
 
-    Board(bool _turn) {
-        turn = _turn;
+    Board(bool _turn = true) : turn(_turn) {
         stones = vector<vector<Color>>(board_size);
         stones[0] = vector<Color>(init_stone_num, 0);
         stones[board_size - 1] = vector<Color>(init_stone_num, 1);
