@@ -97,9 +97,9 @@ void Board::opp_move(const Hand &hand) {
         int sz = stones[m.pos].size();
         assert(sz >= m.num);
         assert(stones[m.pos].back() == Color::Red);
-        assert(m.pos - tower_num.first >= 0);
+        assert(m.pos - tower_num.second >= 0);
         for (int i = 0; i < m.num; i++) {
-            stones[m.pos - tower_num.first].push_back(
+            stones[m.pos - tower_num.second].push_back(
                 stones[m.pos][sz - m.num + i]);
         }
         stones[m.pos].resize(sz - m.num);
