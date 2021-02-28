@@ -69,7 +69,7 @@ void Board::my_move(const Hand &hand) {
     } else {
         const Move &m = get<Move>(hand);
         int sz = stones[m.pos].size();
-        assert(sz > m.num);
+        assert(sz >= m.num);
         assert(stones[m.pos].back() == Color::Blue);
         assert(m.pos + tower_num.first < board_size);
         for (int i = 0; i < m.num; i++) {
@@ -95,7 +95,7 @@ void Board::opp_move(const Hand &hand) {
     } else {
         const Move &m = get<Move>(hand);
         int sz = stones[m.pos].size();
-        assert(sz > m.num);
+        assert(sz >= m.num);
         assert(stones[m.pos].back() == Color::Red);
         assert(m.pos - tower_num.first >= 0);
         for (int i = 0; i < m.num; i++) {
@@ -130,6 +130,7 @@ Hand AI::calc_hand(const Board &board) {
     if (hands.size() == 0) hands.push_back(Pass());
     return hands.front();
 }
+
 struct Player {
     Board board;
     AI ai;
