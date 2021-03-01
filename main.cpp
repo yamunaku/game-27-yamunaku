@@ -207,13 +207,15 @@ void TreeNode::calc_value(int height) {
         sort(children.begin(), children.end(),
              [](const pair<Hand, unique_ptr<TreeNode>> &l,
                 const pair<Hand, unique_ptr<TreeNode>> &r) {
-                 return l.second->get_best_hand() > r.second->get_best_hand();
+                 return l.second->get_best_hand().second >
+                        r.second->get_best_hand().second;
              });
     } else {
         sort(children.begin(), children.end(),
              [](const pair<Hand, unique_ptr<TreeNode>> &l,
                 const pair<Hand, unique_ptr<TreeNode>> &r) {
-                 return l.second->get_best_hand() < r.second->get_best_hand();
+                 return l.second->get_best_hand().second <
+                        r.second->get_best_hand().second;
              });
     }
     best_hand = {children.front().first,
@@ -240,8 +242,14 @@ pair<Hand, int> TreeNode::get_best_hand() const { return best_hand; }
 
 unique_ptr<TreeNode> TreeNode::choose(const Hand &hand) {
     for (auto &ch : children) {
-        if (ch.first == hand) {
+        if (holds_alternative<Pass>(ch.first) &&
+            holds_alternative<Pass>(hand)) {
             return move(ch.second);
+        } else if (holds_alternative<Move>(ch.first) &&
+                   holds_alternative<Move>(hand)) {
+            const Move &m1 = get<Move>(ch.first);
+            const Move &m2 = get<Move>(hand);
+            if (m1.pos == m2.pos && m1.num == m2.num) return move(ch.second);
         }
     }
     assert(false);
