@@ -134,17 +134,19 @@ Hand AI::calc_hand(const Board &board) {
 struct Player {
     Board board;
     AI ai;
+    bool is_first;
+
     void play();
     bool input_init() const;
     bool input_playing() const;
     Hand input_hand() const;
     void input_wait() const;
     int input_score() const;
-    void output_hand(const Hand &hand) const;
+    void output_hand(Hand hand) const;
 };
 
 void Player::play() {
-    bool is_first = input_init();
+    is_first = input_init();
     board = Board(is_first);
     if (is_first) {
         Hand my_hand = ai.calc_hand(board);
@@ -190,6 +192,7 @@ Hand Player::input_hand() const {
     cin >> pos >> num;
     assert(0 <= pos && pos < 9);
     assert(0 <= num);
+    if (!is_first) pos = board_size - 1 - pos;
     return Move(pos, num);
 }
 
@@ -206,7 +209,13 @@ int Player::input_score() const {
     return score;
 }
 
-void Player::output_hand(const Hand &hand) const {
+void Player::output_hand(Hand hand) const {
+    if (!is_first) {
+        if (holds_alternative<Move>(hand)) {
+            Move &m = get<Move>(hand);
+            m.pos = board_size - 1 - m.pos;
+        }
+    }
     cout << to_string(hand) << endl;
 }
 
