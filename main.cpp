@@ -315,6 +315,7 @@ void Player::play() {
     ai.calc_hand();
     if (is_first) {
         Hand my_hand = ai.calc_hand();
+        ai.my_move(my_hand);
         input_wait();
         output_hand(my_hand);
     }
