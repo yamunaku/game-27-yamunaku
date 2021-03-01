@@ -155,7 +155,20 @@ vector<Hand> Board::opp_next() const {
     return hands;
 }
 
-int eval(const Board &board) { return 0; }
+int eval(const Board &board) {
+    const vector<vector<Color>> &stones = board.get_stones();
+    int score = 0;
+    score += 5 * stones.back().size();
+    score -= 5 * stones.front().size();
+    for (int i = 1; i < board_size - 1; i++) {
+        if (stones[i].size() > 0) {
+            if (stones[i].back() == Color::Blue) {
+                score += stones[i].size();
+            }
+        }
+    }
+    return score;
+}
 struct TreeNode {
    private:
     unique_ptr<Board> board_p;
