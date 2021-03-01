@@ -29,9 +29,13 @@ constexpr Num init_stone_num = 9;
 enum class Color { Blue, Red };
 
 struct Board {
+   private:
     bool turn;
     vector<vector<Color>> stones;
 
+   public:
+    bool get_turn() const;
+    const vector<vector<Color>> &get_stones() const;
     pair<Position, Position> count_tower() const;
     void my_move(const Hand &hand);
     void opp_move(const Hand &hand);
@@ -54,6 +58,9 @@ pair<Position, Position> Board::count_tower() const {
     }
     return {my, opp};
 }
+
+bool Board::get_turn() const { return turn; }
+const vector<vector<Color>> &Board::get_stones() const { return stones; }
 
 void Board::my_move(const Hand &hand) {
     pair<Position, Position> tower_num = count_tower();
@@ -113,7 +120,7 @@ struct AI {
 
 Hand AI::calc_hand(const Board &board) {
     vector<Hand> hands;
-    const auto &stones = board.stones;
+    const auto &stones = board.get_stones();
     board.count_tower();
     int blue_num = board.count_tower().first;
     for (int i = 0; i < board_size; i++) {
@@ -132,17 +139,20 @@ Hand AI::calc_hand(const Board &board) {
 }
 
 struct Player {
+   private:
     Board board;
     AI ai;
     bool is_first;
 
-    void play();
     bool input_init() const;
     bool input_playing() const;
     Hand input_hand() const;
     void input_wait() const;
     int input_score() const;
     void output_hand(Hand hand) const;
+
+   public:
+    void play();
 };
 
 void Player::play() {
