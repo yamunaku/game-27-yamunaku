@@ -36,6 +36,8 @@ struct Board {
    public:
     bool get_turn() const;
     const vector<vector<Color>> &get_stones() const;
+    vector<Move> my_next() const;
+    vector<Move> opp_next() const;
     pair<Position, Position> count_tower() const;
     void my_move(const Hand &hand);
     void opp_move(const Hand &hand);
@@ -114,28 +116,50 @@ void Board::opp_move(const Hand &hand) {
     turn = true;
 }
 
-struct AI {
-    Hand calc_hand(const Board &board);
-};
-
-Hand AI::calc_hand(const Board &board) {
-    vector<Hand> hands;
-    const auto &stones = board.get_stones();
-    board.count_tower();
-    int blue_num = board.count_tower().first;
+vector<Move> Board::my_next() const {
+    vector<Move> moves;
+    int blue_num = count_tower().first;
     for (int i = 0; i < board_size; i++) {
         if (stones[i].size() > 0) {
             if (stones[i].back() == Color::Blue) {
                 if (i + blue_num < board_size) {
                     for (int j = 1; j <= stones[i].size(); j++) {
-                        hands.push_back(Move(i, j));
+                        moves.push_back(Move(i, j));
                     }
                 }
             }
         }
     }
-    if (hands.size() == 0) hands.push_back(Pass());
-    return hands.front();
+    return moves;
+}
+
+vector<Move> Board::opp_next() const {
+    vector<Move> moves;
+    int red_num = count_tower().second;
+    for (int i = 0; i < board_size; i++) {
+        if (stones[i].size() > 0) {
+            if (stones[i].back() == Color::Red) {
+                if (i - red_num >= 0) {
+                    for (int j = 1; j <= stones[i].size(); j++) {
+                        moves.push_back(Move(i, j));
+                    }
+                }
+            }
+        }
+    }
+    return moves;
+}
+
+struct AI {
+    Hand calc_hand(const Board &board);
+};
+
+Hand AI::calc_hand(const Board &board) {
+    vector<Move> moves = board.my_next();
+    if (moves.size() == 0)
+        return Pass();
+    else
+        return moves.front();
 }
 
 struct Player {
