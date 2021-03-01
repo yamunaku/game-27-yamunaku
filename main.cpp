@@ -171,6 +171,7 @@ int eval(const Board &board) {
 }
 struct TreeNode {
    private:
+    bool is_first;
     unique_ptr<Board> board_p;
     pair<Hand, int> best_hand;
     vector<pair<Hand, unique_ptr<TreeNode>>> children;
@@ -181,11 +182,12 @@ struct TreeNode {
     void calc_value(int height);
     pair<Hand, int> get_best_hand() const;
     unique_ptr<TreeNode> choose(const Hand &hand);
-    TreeNode(const Board &board) : best_hand(pair<Hand, int>(Pass(), 0)) {
+    TreeNode(const Board &board)
+        : is_first(board.get_turn()), best_hand(pair<Hand, int>(Pass(), 0)) {
         board_p = make_unique<Board>(board);
     }
     TreeNode(const Board &board, const Hand &hand)
-        : best_hand(pair<Hand, int>(Pass(), 0)) {
+        : is_first(!board.get_turn()), best_hand(pair<Hand, int>(Pass(), 0)) {
         board_p = make_unique<Board>(board);
         if (board_p->get_turn())
             board_p->my_move(hand);
@@ -203,17 +205,15 @@ void TreeNode::calc_value(int height) {
     for (const auto &ch : children) {
         ch.second->calc_value(height - 1);
     }
-    if (board_p->get_turn()) {
+    if (is_first) {
         sort(children.begin(), children.end(),
-             [](const pair<Hand, unique_ptr<TreeNode>> &l,
-                const pair<Hand, unique_ptr<TreeNode>> &r) {
+             [](const auto &l, const auto &r) {
                  return l.second->get_best_hand().second >
                         r.second->get_best_hand().second;
              });
     } else {
         sort(children.begin(), children.end(),
-             [](const pair<Hand, unique_ptr<TreeNode>> &l,
-                const pair<Hand, unique_ptr<TreeNode>> &r) {
+             [](const auto &l, const auto &r) {
                  return l.second->get_best_hand().second <
                         r.second->get_best_hand().second;
              });
@@ -224,13 +224,13 @@ void TreeNode::calc_value(int height) {
 
 void TreeNode::make_children() {
     if (!board_p) return;
-    if (board_p->get_turn()) {
-        vector<Hand> hands = board_p->my_next();
+    if (is_first) {
+        const vector<Hand> hands = board_p->my_next();
         for (const auto &m : hands) {
             children.emplace_back(m, make_unique<TreeNode>(*board_p, m));
         }
     } else {
-        vector<Hand> hands = board_p->opp_next();
+        const vector<Hand> hands = board_p->opp_next();
         for (const auto &m : hands) {
             children.emplace_back(m, make_unique<TreeNode>(*board_p, m));
         }
@@ -312,6 +312,7 @@ struct Player {
 void Player::play() {
     is_first = input_init();
     ai = AI(Board(is_first));
+    ai.calc_hand();
     if (is_first) {
         Hand my_hand = ai.calc_hand();
         input_wait();
@@ -321,7 +322,7 @@ void Player::play() {
         Hand opp_hand = input_hand();
         ai.opp_move(opp_hand);
         Hand my_hand = ai.calc_hand();
-        ai.my_move(opp_hand);
+        ai.my_move(my_hand);
         input_wait();
         output_hand(my_hand);
     }
