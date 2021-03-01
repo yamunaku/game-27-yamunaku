@@ -25,6 +25,7 @@ string to_string(const Hand &hand) {
 
 constexpr Position board_size = 9;
 constexpr Num init_stone_num = 9;
+constexpr int depth_of_calc = 5;
 
 enum class Color { Blue, Red };
 
@@ -36,8 +37,8 @@ struct Board {
    public:
     bool get_turn() const;
     const vector<vector<Color>> &get_stones() const;
-    vector<Move> my_next() const;
-    vector<Move> opp_next() const;
+    vector<Hand> my_next() const;
+    vector<Hand> opp_next() const;
     pair<Position, Position> count_tower() const;
     void my_move(const Hand &hand);
     void opp_move(const Hand &hand);
@@ -46,6 +47,8 @@ struct Board {
         stones[0] = vector<Color>(init_stone_num, Color::Blue);
         stones[board_size - 1] = vector<Color>(init_stone_num, Color::Red);
     }
+    Board(const Board &board)
+        : turn(board.get_turn()), stones(board.get_stones()) {}
 };
 
 pair<Position, Position> Board::count_tower() const {
@@ -116,55 +119,161 @@ void Board::opp_move(const Hand &hand) {
     turn = true;
 }
 
-vector<Move> Board::my_next() const {
-    vector<Move> moves;
+vector<Hand> Board::my_next() const {
+    vector<Hand> hands;
     int blue_num = count_tower().first;
     for (int i = 0; i < board_size; i++) {
         if (stones[i].size() > 0) {
             if (stones[i].back() == Color::Blue) {
                 if (i + blue_num < board_size) {
                     for (int j = 1; j <= stones[i].size(); j++) {
-                        moves.push_back(Move(i, j));
+                        hands.push_back(Move(i, j));
                     }
                 }
             }
         }
     }
-    return moves;
+    if (hands.size() == 0) hands.push_back(Pass());
+    return hands;
 }
 
-vector<Move> Board::opp_next() const {
-    vector<Move> moves;
+vector<Hand> Board::opp_next() const {
+    vector<Hand> hands;
     int red_num = count_tower().second;
     for (int i = 0; i < board_size; i++) {
         if (stones[i].size() > 0) {
             if (stones[i].back() == Color::Red) {
                 if (i - red_num >= 0) {
                     for (int j = 1; j <= stones[i].size(); j++) {
-                        moves.push_back(Move(i, j));
+                        hands.push_back(Move(i, j));
                     }
                 }
             }
         }
     }
-    return moves;
+    if (hands.size() == 0) hands.push_back(Pass());
+    return hands;
+}
+
+int eval(const Board &board) { return 0; }
+struct TreeNode {
+   private:
+    unique_ptr<Board> board_p;
+    pair<Hand, int> best_hand;
+    vector<pair<Hand, unique_ptr<TreeNode>>> children;
+
+    void make_children();
+
+   public:
+    void calc_value(int height);
+    pair<Hand, int> get_best_hand() const;
+    unique_ptr<TreeNode> choose(const Hand &hand);
+    TreeNode(const Board &board) : best_hand(pair<Hand, int>(Pass(), 0)) {
+        board_p = make_unique<Board>(board);
+    }
+    TreeNode(const Board &board, const Hand &hand)
+        : best_hand(pair<Hand, int>(Pass(), 0)) {
+        board_p = make_unique<Board>(board);
+        if (board_p->get_turn())
+            board_p->my_move(hand);
+        else
+            board_p->opp_move(hand);
+    }
+};
+
+void TreeNode::calc_value(int height) {
+    if (height <= 0) {
+        best_hand.second = eval(*board_p);
+        return;
+    }
+    make_children();
+    for (const auto &ch : children) {
+        ch.second->calc_value(height - 1);
+    }
+    if (board_p->get_turn()) {
+        sort(children.begin(), children.end(),
+             [](const pair<Hand, unique_ptr<TreeNode>> &l,
+                const pair<Hand, unique_ptr<TreeNode>> &r) {
+                 return l.second->get_best_hand() > r.second->get_best_hand();
+             });
+    } else {
+        sort(children.begin(), children.end(),
+             [](const pair<Hand, unique_ptr<TreeNode>> &l,
+                const pair<Hand, unique_ptr<TreeNode>> &r) {
+                 return l.second->get_best_hand() < r.second->get_best_hand();
+             });
+    }
+    best_hand = {children.front().first,
+                 children.front().second->get_best_hand().second};
+}
+
+void TreeNode::make_children() {
+    if (!board_p) return;
+    if (board_p->get_turn()) {
+        vector<Hand> hands = board_p->my_next();
+        for (const auto &m : hands) {
+            children.emplace_back(m, make_unique<TreeNode>(*board_p, m));
+        }
+    } else {
+        vector<Hand> hands = board_p->opp_next();
+        for (const auto &m : hands) {
+            children.emplace_back(m, make_unique<TreeNode>(*board_p, m));
+        }
+    }
+    board_p.reset();
+}
+
+pair<Hand, int> TreeNode::get_best_hand() const { return best_hand; }
+
+unique_ptr<TreeNode> TreeNode::choose(const Hand &hand) {
+    for (auto &ch : children) {
+        if (ch.first == hand) {
+            return move(ch.second);
+        }
+    }
+    assert(false);
+    return make_unique<TreeNode>(Board());
+}
+
+struct GameTree {
+   private:
+    unique_ptr<TreeNode> root;
+
+   public:
+    Hand get_best_hand();
+    void choose(const Hand &hand);
+    GameTree(const Board &board) : root(make_unique<TreeNode>(board)) {}
+};
+
+Hand GameTree::get_best_hand() {
+    root->calc_value(depth_of_calc);
+    return root->get_best_hand().first;
+}
+
+void GameTree::choose(const Hand &hand) {
+    unique_ptr<TreeNode> tmp = root->choose(hand);
+    root.reset();
+    root = move(tmp);
 }
 
 struct AI {
-    Hand calc_hand(const Board &board);
+   private:
+    GameTree tree;
+
+   public:
+    Hand calc_hand();
+    void my_move(const Hand &hand);
+    void opp_move(const Hand &hand);
+    AI(const Board &board) : tree(board) {}
 };
 
-Hand AI::calc_hand(const Board &board) {
-    vector<Move> moves = board.my_next();
-    if (moves.size() == 0)
-        return Pass();
-    else
-        return moves.front();
-}
+Hand AI::calc_hand() { return tree.get_best_hand(); }
+
+void AI::my_move(const Hand &hand) { tree.choose(hand); }
+void AI::opp_move(const Hand &hand) { tree.choose(hand); }
 
 struct Player {
    private:
-    Board board;
     AI ai;
     bool is_first;
 
@@ -181,19 +290,19 @@ struct Player {
 
 void Player::play() {
     is_first = input_init();
-    board = Board(is_first);
+    ai = AI(Board(is_first));
     if (is_first) {
-        Hand my_hand = ai.calc_hand(board);
+        Hand my_hand = ai.calc_hand();
+        ai.my_move(opp_hand);
         input_wait();
-        board.my_move(my_hand);
         output_hand(my_hand);
     }
     while (input_playing()) {
         Hand opp_hand = input_hand();
-        board.opp_move(opp_hand);
-        Hand my_hand = ai.calc_hand(board);
+        ai.opp_move(opp_hand);
+        Hand my_hand = ai.calc_hand();
+        ai.my_move(opp_hand);
         input_wait();
-        board.my_move(my_hand);
         output_hand(my_hand);
     }
     int score = input_score();
