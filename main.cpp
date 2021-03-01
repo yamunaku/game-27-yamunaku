@@ -264,7 +264,7 @@ struct AI {
     Hand calc_hand();
     void my_move(const Hand &hand);
     void opp_move(const Hand &hand);
-    AI(const Board &board) : tree(board) {}
+    AI(const Board &board = Board()) : tree(board) {}
 };
 
 Hand AI::calc_hand() { return tree.get_best_hand(); }
@@ -293,7 +293,6 @@ void Player::play() {
     ai = AI(Board(is_first));
     if (is_first) {
         Hand my_hand = ai.calc_hand();
-        ai.my_move(opp_hand);
         input_wait();
         output_hand(my_hand);
     }
