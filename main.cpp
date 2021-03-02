@@ -25,7 +25,7 @@ string to_string(const Hand &hand) {
 
 constexpr Position board_size = 9;
 constexpr Num init_stone_num = 9;
-constexpr int depth_of_calc = 5;
+constexpr int depth_of_calc = 7;
 
 enum class Color { Blue, Red };
 
